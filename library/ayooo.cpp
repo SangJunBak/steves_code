@@ -14,148 +14,107 @@ using namespace std;
 
 void error(const string &s) { throw runtime_error(s); }
 
-class Book {
+class Library {
 public:
-  Book(vector<string> ISBNs, vector<string> titles, vector<string> authors,
-       vector<int> years, bool check); // check for valid user inputs
-  Book();                              // default constructor
+  struct Book {
+    string ISBN;
+    string title;
+    string author;
+    int year;
+    bool is_checked_out;
+    Book(string const ISBN, string const title, string const author,
+         int const year, bool is_checked_out)
+        : ISBN(ISBN), title(title), author(author), year(year),
+          is_checked_out(is_checked_out) {}
+  };
 
-  // modifying memebers
-  void check_book_in(vector<string> &copy_title, vector<string> &copy_ISBN,
-                     vector<string> &copy_author, vector<int> &copy_year,
-                     string user); // check book in
-  void check_book_out(vector<string> &copy_title, vector<string> &copy_ISBN,
-                      vector<string> &copy_author, vector<int> &copy_year,
-                      string user); // check book out
-  bool is_title(string user); // is the user inputted title part of inventory
-  bool is_checked_out(vector<string> &copy_title,
-                      string user); // is the user inputted title checked out
-  void print_book_status(
-      vector<string> &copy_title,
-      string user);          // print whether or not the book is checked out
-  bool is_isbn(string user); // is the user inputted isbn part of inventory
-  bool is_isbn_format(
-      string user); // is the user inputted isbn in the correct format
-  void print_title_of_isbn(
-      string user); // print the title of the corresponding isbn if available
-  bool is_author(string user); // is the user inputted author part of inventory
-  void print_book_of_author(
-      string user);  // print title(s) of the corresponding if available
-  bool valid_year(); // check if book in inventory has valid copyright date
-  bool valid_isbn(); // check if book in inventory has valid author name
+  Library();
+  Library(vector<Library::Book> &books);
 
-  // const member functions
-  vector<string> isbn() const { return ISBN; }
-  vector<string> tit() const { return title; }
-  vector<string> auth() const { return author; }
-  vector<int> ye() const { return year; }
-  bool outchecked() const { return checkedout; }
+  void check_book_in(string &input);
+  void check_book_out(string &input);
+  bool is_title_in_library(string const &title) const;
+  bool is_checked_out(string const &title) const;
+  void print_book_status(string &input) const;
+  bool is_isbn_in_inventory(string const &isbn) const;
+  static bool is_isbn_correct_format(string const &isbn);
+  void print_title_of_isbn(string &isbn) const;
+  bool does_author_have_books_in_inventory(string const &author) const;
+  void print_book_of_author(string &author) const;
+  bool books_have_valid_years() const;
+  bool books_have_valid_isbn() const;
+  bool is_inventory_empty() const;
+  void print_remaining_inventory() const;
+  friend ostream &operator<<(ostream &os, const Library &library);
 
 private:
-  vector<string> ISBN;  // vector to store ISBNs of the library
-  vector<string> title; // vector to store the title of the books of the library
-  vector<string> author; // vector to store the authors of the books
-  vector<int> year;      // copyright date for book usually just the year
-
-  bool checkedout = true;
+  vector<Book> books;
 };
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-Book &default_book() {
-  vector<string> isbn;
-  isbn.push_back("1-2-1-a34");
-  isbn.push_back("11-2-8-c");
-  isbn.push_back("3-6-1-a");
-  isbn.push_back("7-9-12-t");
-  isbn.push_back("9-23-2-z");
+//---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-  vector<string> tit;
-  tit.push_back("Math Book");
-  tit.push_back("Science Book");
-  tit.push_back("History Book");
-  tit.push_back("English Book");
-  tit.push_back("French Book");
-
-  vector<string> auth;
-  auth.push_back("Jim Tory");
-  auth.push_back("Ahmed Sakr");
-  auth.push_back("Randel Keast");
-  auth.push_back("Jim Tory");
-  auth.push_back("Pierre LeGay");
-
-  vector<int> ye;
-  ye.push_back(2010);
-  ye.push_back(1965);
-  ye.push_back(2021);
-  ye.push_back(1825);
-  ye.push_back(1938);
-
-  bool check = true;
-
-  static Book bb(isbn, tit, auth, ye, check);
-  return bb;
+Library::Library() {
+  books.push_back(
+      Library::Book("1-2-1-a", "Math Book", "Jim Tory", 2010, false));
+  books.push_back(
+      Library::Book("1-2-8-c", "Science Book", "Ahmed Sakr", 1965, false));
+  books.push_back(
+      Library::Book("3-6-1-a", "History Book", "Randel Keast", 2021, false));
+  books.push_back(
+      Library::Book("7-9-1-t", "English Book", "Jim Tory", 1825, false));
+  books.push_back(
+      Library::Book("9-2-2-z", "French Book", "Pierre LeGay", 1938, false));
 }
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-Book::Book()
-    : ISBN(default_book().isbn()), title(default_book().tit()),
-      author(default_book().auth()), year(default_book().ye()),
-      checkedout(default_book().outchecked()) {}
-
-//---------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-Book::Book(vector<string> ISBNs, vector<string> titles, vector<string> authors,
-           vector<int> years, bool check)
-    : ISBN(ISBNs), title(titles), author(authors), year(years),
-      checkedout(check) {
-  if (!valid_year()) {
+Library::Library(vector<Library::Book> &books) : books(books) {
+  if (!books_have_valid_years()) {
     error("Inventory: book has invalid copyright year.");
   }
 
-  if (!valid_isbn()) {
+  if (!books_have_valid_isbn()) {
     error("Inventory: book has invalid ISBN.");
   }
 }
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-bool Book::is_title(string user) {
-  for (int i = 0; i < title.size(); ++i) {
-    if (user == title[i]) {
+bool Library::is_title_in_library(string const &title) const {
+  for (auto &book : books) {
+    if (title == book.title) {
       return true;
     }
   }
-
   return false;
 }
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-bool Book::is_checked_out(vector<string> &copy_title, string user) {
-  for (int i = 0; i < copy_title.size(); ++i) {
-    if (user == copy_title[i]) {
-      return false;
+bool Library::is_checked_out(string const &title) const {
+  for (auto &book : books) {
+    if (title == book.title && book.is_checked_out) {
+      return true;
     }
   }
-
-  return true;
+  return false;
 }
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-void Book::print_book_status(vector<string> &copy_title, string user) {
+void Library::print_book_status(string &input) const {
   cout << "\nEnter the book you want to check.\n\n";
-  getline(cin, user);
+  getline(cin, input);
 
   // is title in inventory
-  if (!is_title(user)) {
+  if (!is_title_in_library(input)) {
     error("The book your looking for is not in the inventory.");
   }
 
   // check if booked is checked out
-  if (!is_checked_out(copy_title, user)) {
+  if (!is_checked_out(input)) {
     cout << "\nThe book is not checked out.\n\n";
   } else {
     cout
@@ -165,74 +124,69 @@ void Book::print_book_status(vector<string> &copy_title, string user) {
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-bool Book::is_isbn(string user) {
-  for (int i = 0; i < ISBN.size(); ++i) {
-    if (user == ISBN[i]) {
+bool Library::is_isbn_in_inventory(string const &isbn) const {
+  for (auto &book : books) {
+    if (isbn == book.ISBN) {
       return true;
     }
   }
-
   return false;
 }
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-bool Book::is_isbn_format(string user) {
+bool Library::is_isbn_correct_format(string const &isbn) {
   // correct format is n-n-n-x where n is any integer and x is integer or letter
-  // for example: 23-43-1-a2
-  int count = 0; // variable for number of hyphens in user input
+  // for example: 2-4-1-a
 
-  for (int i = 0; i < user.size(); ++i) { // check if each character is proper
-    if ((user[i] > '9' || user[i] < '0') && user[i] != '-' &&
-        count < 2) { // first two dashes have invalid characters
-      return false;
-    } else if ((user[i] > '9' || user[i] < '0') &&
-               (user[i] > 'z' || user[i] < 'a') && user[i] != '-' &&
-               count >= 2) { // invalid charcter in isbn
-      return false;
-    } else if (user[0] == '-' ||
-               user[user.size() - 1] ==
-                   '-') { // if hyphen the first/ last character will get vector
-                          // subscript error, this prevents that
-      return false;
-    }
-
-    if (i != 0 && (user[i - 1] >= '0' && user[i - 1] <= '9') &&
-        (user[i] == '-') && (user[i + 1] >= '0' && user[i + 1] <= '9') &&
-        count < 2) { // correct format
-      ++count;
-    } else if (count == 2 && ((user[i - 1] >= '0' && user[i - 1] <= '9')) &&
-               (user[i] == '-') &&
-               ((user[i + 1] >= '0' && user[i + 1] <= '9') ||
-                (user[i + 1] >= 'a' && user[i + 1] <= 'z'))) { // correct format
-      ++count;
-    }
-  }
-
-  // needs 3 hyphens to be proper
-  if (count == 3) {
-    return true;
-  } else {
+  if (input.size() != 7) {
     return false;
   }
+
+  for (int i = 0; i < input.size(); i++) {
+    switch (i) {
+    case 0:
+    case 2:
+    case 4:
+      if (input[i] < '0' || input[i] > '9') {
+        return false;
+      }
+      break;
+    case 1:
+    case 3:
+    case 5:
+      if (input[i] != '-') {
+        return false;
+      }
+      break;
+    case 6:
+      if (!isalpha(input[i])) {
+        return false;
+      }
+      break;
+    }
+  }
+
+  return true;
 }
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-void Book::print_title_of_isbn(string user) {
+void Library::print_title_of_isbn(string &isbn) const {
   cout << "\nPlease enter an ISBN and the corresponding book title will be "
           "given.\n\n";
-  getline(cin, user);
+  getline(cin, isbn);
 
-  if (!is_isbn_format(user)) { // check if isbn in correct format
+  if (!is_isbn_correct_format(isbn)) { // check if isbn in correct format
     cout << "\nInproper format of ISBN. Please try again.\n\n";
-  } else if (!is_isbn(user)) { // check of isbn is in inventory
+  } else if (!is_isbn_in_inventory(isbn)) { // check of isbn is in inventory
     cout
         << "\nThis ISBN does not exist in the inventory. Please try again.\n\n";
   } else { // print corresponding book
-    for (int i = 0; i < ISBN.size(); ++i) {
-      if (user == ISBN[i]) {
-        cout << "\nThe book is " << title[i] << ".\n\n";
+
+    for (auto &book : books) {
+      if (isbn == book.ISBN) {
+        cout << "\nThe book is " << book.title << ".\n\n";
       }
     }
   }
@@ -240,46 +194,50 @@ void Book::print_title_of_isbn(string user) {
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-bool Book::is_author(string user) {
-  for (int i = 0; i < author.size(); ++i) {
-    if (user == author[i]) {
+bool Library::does_author_have_books_in_inventory(string const &author) const {
+  for (auto &book : books) {
+    if (author == book.author) {
       return true;
     }
   }
-
   return false;
 }
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-void Book::print_book_of_author(string user) {
-  vector<string> books; // vector to put the auhtor's book(s) in
+void Library::print_book_of_author(string &author) const {
 
   cout << "\nEnter an author to see what books he has in our inventory.\n\n";
-  getline(cin, user);
+  getline(cin, author);
 
-  // check if author is valid and put book(s) into vector
-  if (!is_author(user)) {
+  if (!does_author_have_books_in_inventory(author)) {
     cout << "\nThis author is has no books in our inventory. Please input "
             "another name.\n\n";
-  } else {
-    for (int i = 0; i < author.size(); ++i) {
-      if (user == author[i]) {
-        books.push_back(title[i]);
-      }
-    }
+    return;
   }
 
-  // output titles of books if available
-  if (books.size() == 1) {
-    cout << "\nThe author wrote " << books[0] << "\n\n";
-  } else if (books.size() > 1) {
-    cout << "\nThe author has written the following books: ";
-    for (int i = 0; i < books.size(); ++i) {
+	int num_books_by_author = 0;
+	int last_book_index_written_by_author = 0;
+
+	for (int i = 0; i < books.size(); ++i) {
+    if (author == books[i].author) {
+      num_books_by_author += 1;
+			last_book_index_written_by_author = i;
+    }
+  }
+	
+	if(num_books_by_author == 1) {
+		cout << "\nThe author wrote " << books[last_book_index_written_by_author].title << "\n\n";	
+		return;
+	}
+
+  cout << "\nThe author has written the following books: ";
+  for (int i = 0; i < books.size(); ++i) {
+    if (books[i].author == author) {
       if (i < books.size() - 1) {
-        cout << books[i] << ", ";
+        cout << books[i].title << ", ";
       } else {
-        cout << "and " << books[i] << "\n\n";
+        cout << "and " << books[i].title << "\n\n";
       }
     }
   }
@@ -287,12 +245,25 @@ void Book::print_book_of_author(string user) {
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-bool Book::valid_year() {
+bool Library::books_have_valid_years() const {
   static const int maxyear = 2023;
   static const int minyear = 1790; // year when first book was copyrighted
 
-  for (int i = 0; i < year.size(); ++i) {
-    if (year[i] > maxyear || year[i] < minyear) {
+  for (auto &book : books) {
+    if (book.year > maxyear || book.year < minyear) {
+      return true;
+    }
+  }
+
+  return true;
+}
+
+//---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+bool Library::books_have_valid_isbn() const {
+
+  for (auto &book : books) {
+    if (!is_isbn_correct_format(book.ISBN)) {
       return false;
     }
   }
@@ -302,212 +273,118 @@ bool Book::valid_year() {
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-bool Book::valid_isbn() {
-  int count = 0; // variable for number of hyphens in inventory
-
-  for (int i = 0; i < ISBN.size(); ++i) { // check if each isbn is proper
-    int dynamic = i * 3; // dynamic number to help with the condition statements
-    for (int j = 0; j < ISBN[i].size();
-         ++j) { // check if each character in given isbn is proper
-      if (((ISBN[i])[j] > '9' || (ISBN[i])[j] < '0') && (ISBN[i])[j] != '-' &&
-          (count == dynamic ||
-           count == dynamic + 1)) { // first two dashes have invalid characters
-        return false;
-      } else if (((ISBN[i])[j] > '9' || (ISBN[i])[j] < '0') &&
-                 ((ISBN[i])[j] > 'z' || (ISBN[i])[j] < 'a') &&
-                 (ISBN[i])[j] != '-' &&
-                 count >= dynamic + 2) { // invalid charcter in isbn
-        return false;
-      } else if ((ISBN[i])[0] == '-' ||
-                 (ISBN[i])[ISBN[i].size() - 1] ==
-                     '-') { // if hyphen the first/last character will get
-                            // vector subscript error, this prevents that
-        return false;
-      }
-
-      if (j != 0 && ((ISBN[i])[j - 1] >= '0' && (ISBN[i])[j - 1] <= '9') &&
-          ((ISBN[i])[j] == '-') &&
-          ((ISBN[i])[j + 1] >= '0' && (ISBN[i])[j + 1] <= '9') &&
-          (count == dynamic || count == dynamic + 1)) { // correct format
-        ++count;
-      } else if (count >= dynamic + 2 &&
-                 (((ISBN[i])[j - 1] >= '0' && (ISBN[i])[j - 1] <= '9')) &&
-                 ((ISBN[i])[j] == '-') &&
-                 (((ISBN[i])[j + 1] >= '0' && (ISBN[i])[j + 1] <= '9') ||
-                  ((ISBN[i])[j + 1] >= 'a' &&
-                   (ISBN[i])[j + 1] <= 'z'))) { // correct format
-        ++count;
-      }
-    }
-  }
-
-  // needs exact number of hyphens for isbn to be proper
-  if (count == 3 * ISBN.size()) {
-    return true;
-  } else {
-    return false;
-  }
-}
-
-//---------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-void Book::check_book_out(vector<string> &copy_title, vector<string> &copy_ISBN,
-                          vector<string> &copy_author, vector<int> &copy_year,
-                          string user) {
+void Library::check_book_out(string &input) {
   cout << "\nPlease enter a book you would wish to check out.\n\n";
-  getline(cin, user);
+  getline(cin, input);
 
   // check if book valid
-  if (!is_title(user)) {
+  if (!is_title_in_library(input)) {
     error("The book your looking for is not in the inventory.");
   }
 
-  // let user check book out and remove the book from the copy vectors
-  for (int i = 0; i < copy_title.size(); ++i) {
-    if (user == copy_title[i]) {
-      cout << "\nYou have succesfully checked out " << copy_title[i] << "\n\n";
-      copy_title.erase(copy_title.begin() + i);
-      copy_ISBN.erase(copy_ISBN.begin() + i);
-      copy_author.erase(copy_author.begin() + i);
-      copy_year.erase(copy_year.begin() + i);
-      if (copy_title.size() > title.size()) {
-        error("check_book_in(): too many books in inventory.");
-      }
-      checkedout = true;
-      break;
-    } else {
-      checkedout = false;
+  for (auto &book : books) {
+    if (book.title == input && !book.is_checked_out) {
+      book.is_checked_out = true;
+      cout << "\nYou have succesfully checked out " << book.title << "\n\n";
+      return;
     }
   }
 
-  if (checkedout == false) {
-    cout << "\nThe book is already checked out.\n\n";
-  }
+  cout << "\nThe book is already checked out.\n\n";
 }
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-void Book::check_book_in(vector<string> &copy_title, vector<string> &copy_ISBN,
-                         vector<string> &copy_author, vector<int> &copy_year,
-                         string user) {
+void Library::check_book_in(string &input) {
   cout << "\nPlease enter which book you want to check back in.\n\n";
-  bool check = true;
-
-  getline(cin, user);
+  getline(cin, input);
 
   // check if book valid
-  if (!is_title(user)) {
-    error("The book your looking for is not in the inventory.");
+  if (!is_title_in_library(input)) {
+    error("The book you're looking for is not in the inventory.");
   }
 
-  // has the book been checked out
-  for (int i = 0; i < copy_title.size(); ++i) {
-    if (user == copy_title[i]) {
-      check = true;
-      break;
-    } else {
-      check = false;
+  for (auto &book : books) {
+    if (book.title == input && book.is_checked_out) {
+      book.is_checked_out = false;
+      cout << "\nYou have succesfully checked in " << book.title << "\n\n";
+      return;
     }
   }
 
-  // let user check in the book and add the book back into the copy vector
-  for (int i = 0; i < title.size(); ++i) {
-    if (user == title[i] && !check) {
-      copy_title.push_back(title[i]);
-      copy_ISBN.push_back(ISBN[i]);
-      copy_author.push_back(author[i]);
-      copy_year.push_back(year[i]);
-      cout << "\nYou have succesfully checked in " << title[i] << "\n\n";
-      checkedout = false;
-      if (copy_title.size() > title.size()) {
-        error("check_book_in(): too many books in inventory.");
-      }
-      break;
-    } else {
-      checkedout = true;
-    }
-  }
-
-  if (checkedout == true) {
-    cout << "\nThis book has not been checked out by anyone\n\n";
-  }
+  cout << "\nThis book has not been checked out by anyone\n\n";
 }
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-ostream &operator<<(ostream &os, const Book &np) // used to create the output
-{
-  for (int i = 0; i < np.auth().size(); ++i) {
-    os << "Title: " << np.tit()[i] << "\nISBN: " << np.isbn()[i]
-       << "\nAuthor: " << np.auth()[i] << "\nCopyright: " << np.ye()[i]
-       << "\n\n";
+ostream &operator<<(ostream &os, const Library &library) {
+  for (auto &book : library.books) {
+    os << "Title: " << book.title << "\nISBN: " << book.ISBN
+       << "\nAuthor: " << book.author << "\nCopyright: " << book.year << "\n\n";
   }
+
   return os;
+}
+
+//---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+bool Library::is_inventory_empty() const { return books.size() == 0; }
+
+//---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+void Library::print_remaining_inventory() const {
+  cout << "\nThe remaining inventory is\n\n";
+  for (auto &book : books) {
+    if (!book.is_checked_out) {
+      cout << "Title: " << book.title << "\nISBN: " << book.ISBN
+           << "\nAuthor: " << book.author << "\nCopyright: " << book.year
+           << "\n\n";
+    }
+  }
 }
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 int main() {
   try {
-    Book result;
-    string pick = "a";
-    string user;
-    vector<string> copy_title;
-    vector<string> copy_ISBN;
-    vector<string> copy_author;
-    vector<int> copy_year;
-    copy_title = result.tit();
-    copy_ISBN = result.isbn();
-    copy_author = result.auth();
-    copy_year =
-        result.ye(); // initialize the vectors with contents of inventory
+    Library library;
+    string input;
 
     cout << "Welcome to Mister HB's library! Here is our inventory:\n\n";
-    cout << result;
+    cout << library;
     cout << "\nPlease chose one of the following 6 options.\n\n";
     cout << "'1' to check book out. '2' to check book in. '3' to see if book "
             "is checked out. '4' to search a book by its ISBN. ";
     cout << "'5' to search for books by author. '6' to exit.\n\n";
 
-    while (cin >> pick) {
-      if (pick.size() > 1) { // this prevents program from throwing pick.size()
-                             // number of invlaid messages
+    while (getline(cin, input)) {
+      if (input.size() > 1 ||
+          !isdigit(input[0])) { // this prevents program from throwing
+                                // pick.size() number of invlaid messages
         cout << "\nInvalid input. Please try again.\n\n";
       } else {
-        switch (pick[0]) { // switch can't be used on string, have to turn
-                           // string into char
+        switch (input[0]) { // switch can't be used on string, have to turn
+                            // string into char
         case '1':
-          getline(cin, user); // this needs to be here, why tf???
-          result.check_book_out(copy_title, copy_ISBN, copy_author, copy_year,
-                                user);
+          library.check_book_out(input);
           break;
         case '2':
-          getline(cin, user);
-          result.check_book_in(copy_title, copy_ISBN, copy_author, copy_year,
-                               user);
+          library.check_book_in(input);
           break;
         case '3':
-          getline(cin, user);
-          result.print_book_status(copy_title, user);
+          library.print_book_status(input);
           break;
         case '4':
-          getline(cin, user);
-          result.print_title_of_isbn(user);
+          library.print_title_of_isbn(input);
           break;
         case '5':
-          getline(cin, user);
-          result.print_book_of_author(user);
+          library.print_book_of_author(input);
           break;
         case '6':
-          if (copy_title.size() == 0) {
+          if (library.is_inventory_empty()) {
             cout << "\nThe inventory is empty.\n\n";
           } else {
-            cout << "\nThe remaining inventory is\n\n";
-            for (int i = 0; i < copy_title.size(); ++i) {
-              cout << "Title: " << copy_title[i] << "\nISBN: " << copy_ISBN[i]
-                   << "\nAuthor: " << copy_author[i]
-                   << "\nCopyright: " << copy_year[i] << "\n\n";
-            }
+            library.print_remaining_inventory();
           }
           cout << "You have exited the database. Goodbye.\n\n";
           return 0;
