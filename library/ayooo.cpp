@@ -1,5 +1,5 @@
 /*
-      Class Book should have members for ISBN, title, author, and copyright
+      	Class Book should have members for ISBN, title, author, and copyright
    date Store data on whether or not the book is checked out Create functions
    for returning those data values Create functions for checking a book in and
    out Do simple validation of data entered; for example, accept ISBNs only of
